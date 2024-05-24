@@ -1,0 +1,11 @@
+bokeh==3.4.1
+hyperdash==0.15.3
+ipython==8.11.0
+matplotlib==3.7.1
+numpy==1.24.2
+pandas==2.0.3
+pytorch_msssim==1.0.0
+scikit_learn==1.2.2
+six==1.16.0
+torch==2.0.0+cu118
+torchvision==0.15.1+cu118
