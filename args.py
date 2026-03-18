@@ -1,3 +1,5 @@
+"""Command-line arguments for the main training pipeline."""
+
 import argparse
 
 parser = argparse.ArgumentParser(description='Process some integers.')
@@ -7,4 +9,5 @@ parser.add_argument('--train_epoch',type=int,default=20)
 parser.add_argument('--hidden_layer_size',type=int,default=14)
 parser.add_argument('--distill_epoch',type=int,default=5)
 parser.add_argument('--prune_amount',type=float,default=0.5)
+parser.add_argument('--link_calibrated_noise', type=float, default=0.1)
 args = parser.parse_args()

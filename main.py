@@ -1,3 +1,5 @@
+"""Main entry point for teacher training, student QAT, pruning, and distillation."""
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -11,10 +13,7 @@ from train import *
 from MLP import *
 import prune
 from distill import train_knowledge_distillation
-import wandb
-
-#wandb.init(project="MLP",config=args)
-wandb.init(project="MLP",config=args,mode="disabled")
+print("Starting training with args:", args)
 image_size=args.image_size
 
 num_epochs = args.train_epoch
@@ -41,7 +40,7 @@ model_qat = prepare_qat(student_model)
 criterion = nn.CrossEntropyLoss()
 
 train_student(model_qat,num_epochs,trainloader)
-wandb.log({"stu_test_score_undistilled_unpruned":test_student(model_qat, testloader)})
+print("stu_test_score_undistilled_unpruned:", test_student(model_qat, testloader))
 
 model_qat=prune.prune_model(model_qat,prune_amount)
 
@@ -51,8 +50,8 @@ train_knowledge_distillation(teacher=teacher_model, student=model_qat, train_loa
 parameter_num=parameter_num*(1-prune_amount)
 model_qat.eval()
 
-wandb.log({"stu_test_score_distilled":test_student(model_qat, testloader)})
-wandb.log({"paremeter_num":parameter_num})
+print("stu_test_score_distilled:", test_student(model_qat, testloader))
+print("paremeter_num:", parameter_num)
 
 model_quantized = convert(model_qat, inplace=False)
 torch.save(model_quantized.state_dict(),'./student_model.pth')

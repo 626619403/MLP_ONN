@@ -1,7 +1,12 @@
+"""Quantization-aware MLP student model used in the main pipeline."""
+
 from args import *
 from torch.ao.quantization import QuantStub, DeQuantStub, prepare_qat, prepare,convert,QConfig,get_default_qat_qconfig,default_observer
 from torch.ao.quantization.observer import MinMaxObserver
 import torch
+
+NUM_BITS = 5
+
 
 class MLP(torch.nn.Module):
 
@@ -34,6 +39,7 @@ class MLP(torch.nn.Module):
         return x
     
 def get_default_qat_qconfig_per_tensor(backend='fbgemm'):
-    activation = default_observer.with_args(reduce_range=False,quant_min=-16,quant_max=15)
-    weight = default_observer.with_args(dtype=torch.qint8, reduce_range=False,quant_min=-16,quant_max=15)
+    # Use an explicit signed 5-bit range for both activations and weights.
+    activation = default_observer.with_args(reduce_range=False, quant_min=-16, quant_max=15)
+    weight = default_observer.with_args(dtype=torch.qint8, reduce_range=False, quant_min=-16, quant_max=15)
     return QConfig(activation=activation, weight=weight)

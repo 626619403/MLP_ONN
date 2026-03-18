@@ -1,6 +1,7 @@
+"""Linear-layer pruning and short fine-tuning step for the student model."""
+
 import torch.nn.utils.prune as prune
 from train import *
-import wandb
 from dataloader import *
 
 prune_method = prune.L1Unstructured 
@@ -17,5 +18,5 @@ def prune_model(model,prune_amount):
     for module, _ in parameters_to_prune:
         prune.remove(module, 'weight')
     train_student(model,5,trainloader)
-    wandb.log({"stu_test_score_undistilled_pruned":test_student(model, testloader)})
+    print("stu_test_score_undistilled_pruned:", test_student(model, testloader))
     return model

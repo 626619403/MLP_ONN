@@ -1,8 +1,34 @@
 import torch
-from torch.autograd.function import InplaceFunction, Function
+from torch.autograd.function import InplaceFunction
 import torch.nn as nn
 import torch.nn.functional as F
-import math
+from gradient_utils import add_gradient_noise
+
+
+GRADIENT_NOISE_STD = 0.0
+
+
+def set_gradient_noise_std(noise_std):
+    global GRADIENT_NOISE_STD
+    GRADIENT_NOISE_STD = max(float(noise_std), 0.0)
+
+
+GRADIENT_NOISE_STD = 0.0
+
+
+def set_gradient_noise_std(noise_std):
+    global GRADIENT_NOISE_STD
+    GRADIENT_NOISE_STD = max(float(noise_std), 0.0)
+
+
+def add_gradient_noise(tensor, noise_std=None):
+    effective_noise_std = GRADIENT_NOISE_STD if noise_std is None else max(float(noise_std), 0.0)
+    if effective_noise_std <= 0:
+        return tensor
+    grad_scale = tensor.detach().std(unbiased=False)
+    if torch.isnan(grad_scale) or grad_scale <= 0:
+        return tensor
+    return tensor + torch.randn_like(tensor) * (grad_scale * effective_noise_std)
 
 
 def _mean(p, dim):
@@ -32,9 +58,7 @@ class UniformQuantize(InplaceFunction):
             y = input.view(B // num_chunks, -1)
         if min_value is None:
             min_value = y.min(-1)[0].mean(-1)  # C
-            #min_value = float(input.view(input.size(0), -1).min(-1)[0].mean())
         if max_value is None:
-            #max_value = float(input.view(input.size(0), -1).max(-1)[0].mean())
             max_value = y.max(-1)[0].mean(-1)  # C
         ctx.inplace = inplace
         ctx.num_bits = num_bits
@@ -50,7 +74,6 @@ class UniformQuantize(InplaceFunction):
 
         qmin = 0.
         qmax = 2.**num_bits - 1.
-        #import pdb; pdb.set_trace()
         scale = (max_value - min_value) / (qmax - qmin)
 
         scale = max(scale, 1e-8)
@@ -105,18 +128,15 @@ class UniformQuantizeGrad(InplaceFunction):
     def backward(ctx, grad_output):
         if ctx.min_value is None:
             min_value = float(grad_output.min())
-            # min_value = float(grad_output.view(
-            # grad_output.size(0), -1).min(-1)[0].mean())
         else:
             min_value = ctx.min_value
         if ctx.max_value is None:
             max_value = float(grad_output.max())
-            # max_value = float(grad_output.view(
-            # grad_output.size(0), -1).max(-1)[0].mean())
         else:
             max_value = ctx.max_value
         grad_input = UniformQuantize().apply(grad_output, ctx.num_bits,
                                              min_value, max_value, ctx.stochastic, ctx.inplace)
+        grad_input = add_gradient_noise(grad_input, noise_std=GRADIENT_NOISE_STD)
         return grad_input, None, None, None, None, None
 
 

@@ -1,3 +1,5 @@
+"""ResNet teacher model used to guide the student through distillation."""
+
 import torch
 import torch.nn as nn
 

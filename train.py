@@ -1,7 +1,8 @@
+"""Training and evaluation helpers for the teacher and student models."""
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import wandb
 criterion = nn.CrossEntropyLoss()
 
 def train_teacher(model,num_epochs,trainloader):
@@ -37,8 +38,8 @@ def train_student(model,epochs,trainloader):
             _, id = torch.max(outputs.data, 1)
             sum_loss += loss.data
             train_correct += torch.sum(id == labels.data)
-        wandb.log({"stu_loss":sum_loss})
-        wandb.log({"stu_acc":train_correct/60000})
+        print(f"stu_loss: {sum_loss}")
+        print(f"stu_acc: {train_correct/60000}")
         if epoch > 5:
             model.apply(torch.ao.quantization.disable_observer)
         if epoch > 3:
@@ -56,7 +57,6 @@ def test_teacher(model,testloader):
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-    wandb.log({"teacher_testscore":100 * correct / total})
     print("teacher_testscore:",100 * correct / total)
     
 def test_student(model,testloader):

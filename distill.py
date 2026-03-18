@@ -1,3 +1,5 @@
+"""Knowledge-distillation loop for transferring teacher outputs to the student."""
+
 import torch
 import torch.nn as nn
 import torch.optim as optim

@@ -1,54 +1,103 @@
 # README
 
+This repository contains the support code for the KAUST Integrated Photonics Lab publication in *Advanced Photonics*, "Integrated Quantum Dot Lasers for Parallelized Photonic Edge Computing."
+
 ## Overview
 
-This repository contains the code used to generate all the simulation data and parameter matrices deployed on devices as discussed in our paper. If you want to utilize this code, you will need to install all the dependencies listed in the `requirements.txt` file.
+This repository contains a compact MNIST training pipeline built around:
+
+- A `ResNet18` teacher model.
+- A quantization-aware `MLP` student model.
+- Student pruning and fine-tuning.
+- Knowledge distillation from the teacher to the student.
+- A separate noise-scanning script for input-noise robustness analysis.
+- A separate notebook for backward-gradient quantization/noise approximation experiments.
+
+The current main path trains the student with noisy inputs and explicit 5-bit quantization-aware training.
 
 ## Installation
 
-To install the required libraries, run the following command:
+Install the required packages with:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
+## Main Pipeline
 
-To run the main program, use the following command:
+Run the main training pipeline with:
 
 ```bash
 python main.py [--argument_name argument_value]
 ```
 
-### Command Line Arguments
+`main.py` performs the following steps:
 
-The program accepts the following command-line arguments:
+1. Trains a `ResNet18` teacher on MNIST.
+2. Builds a student `MLP` and prepares it for quantization-aware training.
+3. Trains the student on MNIST with Gaussian input noise added to the training images.
+4. Evaluates the undistilled student.
+5. Prunes the student.
+6. Runs knowledge distillation from the teacher to the pruned student.
+7. Evaluates the distilled student.
+8. Converts the final student to a quantized model and saves the weights.
 
-- `image_size`: The compressed size of the input image. Available options are [7, 14, 28].
-- `layer_num`: The number of hidden layers. The range is from 1 to 4.
-- `train_epoch`: The number of training epochs.
-- `hidden_layer_size`: The number of neurons in each hidden layer.
-- `distill_epoch`: The number of epochs for knowledge distillation.
-- `prune_amount`: The pruning ratio, ranging from 0 to 1.
+## Main Files
+
+- `main.py`: Main training entry point.
+- `args.py`: Command-line arguments for the main pipeline.
+- `dataloader.py`: MNIST loaders with noisy-input training.
+- `resnet.py`: Teacher network definition.
+- `MLP.py`: Student network definition and QAT config.
+- `train.py`: Teacher/student train and test helpers.
+- `distill.py`: Knowledge distillation loop.
+- `prune.py`: Student pruning and short retraining.
+
+## Noise Robustness Scan
+
+Run the separate noise robustness script with:
+
+```bash
+python noise_scan.py
+```
+
+This script:
+
+1. Reuses the same teacher/student setup as the main path.
+2. Trains or loads a student checkpoint.
+3. Evaluates the student under multiple input-noise levels.
+4. Saves checkpoints, CSV results, and a robustness plot under `Noise_analysis/`.
+
+## Notebook Experiment
+
+The notebook `backward-gradient-5bit-noise-simulation.ipynb` is a separate experiment for approximating noisy and quantized backward-gradient propagation.
+
+## Command-Line Arguments
+
+The main pipeline accepts these arguments:
+
+- `--image_size`: Input image size. Choices: `7`, `14`, `28`.
+- `--layer_num`: Number of student hidden layers. Choices: `1`, `2`, `3`, `4`.
+- `--train_epoch`: Number of teacher/student training epochs before distillation.
+- `--hidden_layer_size`: Width of the hidden layers in the student MLP.
+- `--distill_epoch`: Number of distillation epochs.
+- `--prune_amount`: Fraction of linear-layer weights removed during pruning.
+- `--link_calibrated_noise`: Standard deviation of Gaussian noise added to training inputs.
 
 ## Example
 
-To run the program with specific parameters, you might use a command like the following:
+Example main run:
 
 ```bash
-python main.py --image_size 14 --layer_num 4 --train_epoch 20 --hidden_layer_size 10 --distill_epoch 5 --prune_amount 0.5
+python main.py --image_size 14 --layer_num 4 --train_epoch 20 --hidden_layer_size 14 --distill_epoch 5 --prune_amount 0.5 --link_calibrated_noise 0.1
 ```
 
-This command sets the input image size to 28x28, uses 3 hidden layers, trains for 50 epochs, has 100 neurons per hidden layer, distills knowledge for 20 epochs, and prunes 50% of the network parameters.
+Example noise scan:
 
-## Contributing
-
-Feel free to fork this repository and submit pull requests to contribute to this project. For major changes, please open an issue first to discuss what you would like to change.
+```bash
+python noise_scan.py
+```
 
 ## License
 
-[MIT License](LICENSE.txt)
-
-## Acknowledgments
-
-This work was supported by King Abdullah University of Science and Technology. We would like to thank all the contributors who have invested their time and effort in refining this project.
+This repository includes MIT-licensed components. See the bundled license files for details.
